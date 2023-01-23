@@ -1,5 +1,4 @@
 #!/bin/sh
-exec > rssi_new_data.log
 # Clearing ARP cache
 ip neigh flush dev br-lan 
 #> /dev/null
