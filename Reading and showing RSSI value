@@ -1,0 +1,70 @@
+#!/bin/sh
+exec > rssi_new_data.log
+# Clearing ARP cache
+ip neigh flush dev br-lan 
+#> /dev/null
+echo "ARP cache flushed!"
+
+clear
+
+alfa149='192.168.1.149'
+mac149='68:72:51:80:E2:E1'
+mac149s='68:72:51:80:e2:e1'
+
+ifaces="mesh0"
+
+ station_mac=$mac149s;
+ station_ip=$alfa149; break;
+ 
+t1=$(date +"%s");
+
+while true
+do
+for iface in $ifaces
+do
+  a="Station"
+  b="signal avg:"
+  c="inactive time:"
+  temp_out=`iw dev mesh0 station dump | grep -wE "$a|$b|$c"`
+
+
+      for word in "Station" "(on mesh0)" "signal avg:" "dBm" "inactive time:" "ms"
+        do
+        temp_out="${temp_out//$word/}"
+      done
+
+  # Count words
+  word_count=`echo $temp_out | wc -w`
+  station_found=0;
+  for counter in `seq 1 4 $(($word_count-3))`
+  do
+      mc=`echo $temp_out | cut -d " " -f $counter`             # MAC value
+      rs=`echo $temp_out | cut -d " " -f $(($counter+2))`      # RSSI value
+      delay=`echo $temp_out | cut -d " " -f $(($counter+1))`   # Inactive time value
+      
+      if [[ $mc == $station_mac ]]
+       then
+           station_found=1;
+           if [[ $delay -lt 2000 ]]
+           then            
+                 if [[ $mc == $mac149s ]]
+                then
+                  echo -ne "IP: $alfa149 , RSSI: $rs dBm , Time: $(date +%d:%m:%y_%H:%M:%S) \r"
+                  break 
+                fi
+           else
+            echo -ne "Station $station_ip inactive since last $delay milli-seconds \r";
+              break    
+           fi
+      fi
+      
+  done
+if [[ $station_found == 0 ]] 
+  then 
+  t2=$(date +"%s")
+  echo -ne "Station not reachable since $(($t2 - $t1)) seconds! \r" 
+fi
+done
+#sleep 1
+#clear
+done
